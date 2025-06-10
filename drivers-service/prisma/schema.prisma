@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Driver {
+  id                 String             @id @default(uuid())
+  firstName          String
+  lastName           String
+  driverId           String?            // Employee ID (can be auto-generated)
+  dob                DateTime
+  ssn                String?
+  
+  // Contact Information
+  phonePrimary       String
+  phoneSecondary     String?
+  email              String             @unique
+  streetNumber       String?
+  streetName         String?
+  city               String?
+  stateProvince      String?
+  country            String?
+  postalCode         String?
+  
+  // Licensing & Credentials
+  licenseNumber      String
+  licenseState       String
+  licenseClass       String
+  licenseClassOther  String?
+  licenseExpiry      DateTime
+  medCertExpiry      DateTime
+  twicExpiry         DateTime?
+  
+  // Employment Details
+  hireDate           DateTime
+  driverType         String             // company, owner_operator, lease_purchase
+  employmentStatus   String             @default("active") // active, leave, terminated
+  operatingBaseCity  String?
+  operatingBaseState String?
+  assignedVehicle    String?
+  
+  // System Fields
+  status             DriverStatus       @default(available)
+  hoursOfService     HoursOfService?
+  loadId             String?
+  notes              String?
+  avatarUrl          String?
+  
+  // Relationships
+  emergencyContacts  EmergencyContact[]
+  endorsements       Endorsement[]
+  documents          Document[]
+  
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model EmergencyContact {
+  id           Int      @id @default(autoincrement())
+  name         String
+  relationship String
+  phone        String
+  driver       Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId     String
+}
+
+model Endorsement {
+  id        Int       @id @default(autoincrement())
+  type      String
+  expiryDate DateTime?
+  driver    Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId  String
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  fileName  String
+  fileUrl   String
+  fileType  String
+  driver    Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId  String
+  createdAt DateTime @default(now())
+}
+
+model HoursOfService {
+  id                     Int      @id @default(autoincrement())
+  drivingHoursToday      Float    @default(0)
+  dutyHoursToday         Float    @default(0)
+  timeUntilBreakRequired Float    @default(0)
+  driver                 Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  driverId               String   @unique
+}
+
+enum DriverStatus {
+  available
+  driving
+  on_break @map("on-break")
+  loading
+  unloading
+  maintenance
+  away
+  off_duty @map("off-duty")
+}
